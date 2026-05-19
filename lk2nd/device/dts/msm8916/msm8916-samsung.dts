@@ -1100,7 +1100,7 @@
 		compatible = "samsung,gt510wifi", "qcom,apq8016";
 		lk2nd,match-bootloader = "P550*", "T550*";
 		lk2nd,dtb-files = "msm8916-samsung-gt510";
-		qcom,msm-id = <QCOM_ID_MSM8916 0>;
+		qcom,msm-id = <QCOM_ID_APQ8016 0>;
 		qcom,board-id = <0xF708FF01 7>;
 
 		gpio-keys {
