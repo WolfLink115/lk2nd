@@ -1,0 +1,59 @@
+name: Build lk2nd for MSM8916
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'Makefile'
+      - 'rules.mk'
+      - 'platform/msm8916/**'
+      - 'target/msm8916/**'
+      - '.github/workflows/build-lk2nd-msm8916.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build lk2nd MSM8916
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            gcc-arm-none-eabi \
+            binutils-arm-none-eabi \
+            python3
+            
+      - name: Verify toolchain
+        run: |
+          arm-none-eabi-gcc --version
+          arm-none-eabi-ld --version
+          
+      - name: Build lk2nd for MSM8916
+        run: |
+          make TOOLCHAIN_PREFIX=arm-none-eabi- lk2nd-msm8916
+          
+      - name: Check build output
+        run: |
+          ls -lh build-lk2nd-msm8916/lk2nd.img 2>/dev/null || echo "Build output not found at expected location"
+          find . -name "lk2nd.img" -o -name "*.elf" | head -20
+          
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lk2nd-msm8916-build
+          path: |
+            build-lk2nd-msm8916/lk2nd.img
+            build-lk2nd-msm8916/lk2nd.elf
+          retention-days: 30
+          if-no-files-found: warn
