@@ -118,6 +118,43 @@ static uint16_t wait_key(void)
 	return keycode;
 }
 
+static int lk2nd_current_el(void)
+{
+#if ARM64
+	uint64_t el;
+
+	__asm__ volatile("mrs %0, CurrentEL" : "=r"(el));
+	return (el >> 2) & 0x3;
+#else
+	return -1;
+#endif
+}
+
+static bool lk2nd_has_el2(void)
+{
+#if ARM64
+	uint64_t pfr0;
+	uint64_t el2;
+
+	__asm__ volatile("mrs %0, ID_AA64PFR0_EL1" : "=r"(pfr0));
+
+	el2 = (pfr0 >> 8) & 0xf;
+	return el2 != 0;
+#else
+	return false;
+#endif
+}
+
+static const char *lk2nd_psci_status(void)
+{
+	return "Unknown";
+}
+
+static const char *lk2nd_secure_boot_status(void)
+{
+	return "Unknown";
+}
+
 #define xstr(s) str(s)
 #define str(s) #s
 
@@ -238,9 +275,20 @@ void display_fastboot_menu(void)
 	fbcon_printf_ln(armv8 ? GREEN : YELLOW, y, incr, false, " ARM64:  %s",
 			armv8 ? "Available" : "Unavailable");
 
-	fbcon_printf_ln(GREEN, y, incr, false, " EL2:    %s", "Available");
-	fbcon_printf_ln(YELLOW, y, incr, false, " PSCI:   %s", "Unavailable");
-	fbcon_printf_ln(YELLOW, y, incr, false, " Secure Boot: %s", "Unknown");
+	bool el2 = lk2nd_has_el2();
+	fbcon_printf_ln(el2 ? GREEN : YELLOW, y, incr, false, " EL2:    %s",
+			el2 ? "Available" : "Unavailable");
+
+	int el = lk2nd_current_el();
+	if (el >= 0)
+		fbcon_printf_ln(GREEN, y, incr, false, " Current EL: EL%d", el);
+	else
+		fbcon_printf_ln(YELLOW, y, incr, false, " Current EL: Unknown");
+
+	fbcon_printf_ln(YELLOW, y, incr, false, " PSCI:   %s", lk2nd_psci_status());
+
+	fbcon_printf_ln(YELLOW, y, incr, false, " Secure Boot: %s",
+			lk2nd_secure_boot_status());
 
 	/*
 	 * Loop to render the menu elements
