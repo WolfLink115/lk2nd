@@ -1094,4 +1094,22 @@
 			i2c-scl-gpios = <&tlmm 3 I2C_GPIO_FLAGS>;
 		};
 	};
+
+	gt5note10wifi {
+		model = "Samsung Galaxy Tab A 9.7 2015 with S Pen (WiFi, SM-T550)";
+		compatible = "samsung,gt5note10wifi", "samsung,gt510";
+		lk2nd,match-bootloader = "T550*";
+		lk2nd,dtb-files = "msm8916-samsung-gt510";
+		qcom,msm-id = <QCOM_ID_MSM8916 0>;
+		qcom,board-id = <0xF708FF01 7>;
+
+		gpio-keys {
+			compatible = "gpio-keys";
+
+			home {
+				lk2nd,code = <KEY_HOME>;
+				gpios = <&tlmm 109 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			};
+		};
+	};
 };
