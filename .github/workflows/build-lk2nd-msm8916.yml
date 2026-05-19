@@ -31,7 +31,8 @@ jobs:
             build-essential \
             gcc-arm-none-eabi \
             binutils-arm-none-eabi \
-            python3
+            python3 python3-dev swig
+          python -m pip install pylibfdt
             
       - name: Verify toolchain
         run: |
