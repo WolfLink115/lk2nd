@@ -12,11 +12,15 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <lk2nd/util/psci.h>
 #include <lk2nd/device/keys.h>
 #include <lk2nd/util/minmax.h>
 #include <lk2nd/version.h>
 
 #include "../device.h"
+
+// Secure Boot Detection
+extern bool is_secure_boot_enable(void);
 
 // Defined in app/aboot/aboot.c
 extern void cmd_continue(const char *arg, void *data, unsigned sz);
@@ -118,41 +122,56 @@ static uint16_t wait_key(void)
 	return keycode;
 }
 
-static int lk2nd_current_el(void)
+static const char *lk2nd_cpu_mode(void)
 {
-#if ARM64
+#if defined(__aarch64__)
+	return "AArch64";
+#elif defined(__arm__)
+	return "AArch32";
+#else
+	return "Unknown";
+#endif
+}
+
+static const char *lk2nd_current_mode(void)
+{
+#if defined(__arm__)
+	uint32_t cpsr;
+
+	__asm__ volatile("mrs %0, cpsr" : "=r"(cpsr));
+
+	switch (cpsr & 0x1f) {
+	case 0x10: return "User";
+	case 0x11: return "FIQ";
+	case 0x12: return "IRQ";
+	case 0x13: return "Supervisor";
+	case 0x16: return "Monitor";
+	case 0x17: return "Abort";
+	case 0x1a: return "Hyp";
+	case 0x1b: return "Undefined";
+	case 0x1f: return "System";
+	default: return "Unknown";
+	}
+#elif defined(__aarch64__)
 	uint64_t el;
 
 	__asm__ volatile("mrs %0, CurrentEL" : "=r"(el));
-	return (el >> 2) & 0x3;
+	switch ((el >> 2) & 0x3) {
+	case 1: return "EL1";
+	case 2: return "EL2";
+	case 3: return "EL3";
+	default: return "EL0";
+	}
 #else
-	return -1;
-#endif
-}
-
-static bool lk2nd_has_el2(void)
-{
-#if ARM64
-	uint64_t pfr0;
-	uint64_t el2;
-
-	__asm__ volatile("mrs %0, ID_AA64PFR0_EL1" : "=r"(pfr0));
-
-	el2 = (pfr0 >> 8) & 0xf;
-	return el2 != 0;
-#else
-	return false;
-#endif
-}
-
-static const char *lk2nd_psci_status(void)
-{
 	return "Unknown";
+#endif
 }
 
 static const char *lk2nd_secure_boot_status(void)
 {
-	return "Unknown";
+	return is_secure_boot_enable()
+		? "Enabled"
+		: "Disabled";
 }
 
 #define xstr(s) str(s)
@@ -195,6 +214,22 @@ static struct {
 		fbcon_puts(str, color, y, center); \
 		y += incr; \
 	} while(0)
+
+static void lk2nd_print_psci(int *y, int incr)
+{
+	int32_t ver = psci_version();
+
+	if (ver == PSCI_RET_NOT_SUPPORTED) {
+		fbcon_printf_ln(YELLOW, *y, incr, false,
+				" PSCI:   Unavailable");
+		return;
+	}
+
+	fbcon_printf_ln(GREEN, *y, incr, false,
+			" PSCI:   v%d.%d",
+			PSCI_VERSION_MAJOR(ver),
+			PSCI_VERSION_MINOR(ver));
+}
 
 void display_fastboot_menu(void)
 {
@@ -258,7 +293,7 @@ void display_fastboot_menu(void)
 
 	scale_factor = max(1, scale_factor - 1);
 	incr = FONT_HEIGHT * scale_factor;
-	y = fb->height - 8 * incr;
+	y = fb->height - 11 * incr;
 
 	fbcon_puts_ln(WHITE, y, incr, true, "About this device");
 
@@ -275,17 +310,16 @@ void display_fastboot_menu(void)
 	fbcon_printf_ln(armv8 ? GREEN : YELLOW, y, incr, false, " ARM64:  %s",
 			armv8 ? "Available" : "Unavailable");
 
-	bool el2 = lk2nd_has_el2();
-	fbcon_printf_ln(el2 ? GREEN : YELLOW, y, incr, false, " EL2:    %s",
-			el2 ? "Available" : "Unavailable");
+	fbcon_printf_ln(GREEN, y, incr, false, " LK Mode: %s",
+			lk2nd_cpu_mode());
 
-	int el = lk2nd_current_el();
-	if (el >= 0)
-		fbcon_printf_ln(GREEN, y, incr, false, " Current EL: EL%d", el);
-	else
-		fbcon_printf_ln(YELLOW, y, incr, false, " Current EL: Unknown");
+	fbcon_printf_ln(GREEN, y, incr, false, " Current Mode: %s",
+			lk2nd_current_mode());
 
-	fbcon_printf_ln(YELLOW, y, incr, false, " PSCI:   %s", lk2nd_psci_status());
+	fbcon_printf_ln(YELLOW, y, incr, false, " HYP/EL2: %s",
+			"Unavailable");
+
+	lk2nd_print_psci(&y, incr);
 
 	fbcon_printf_ln(YELLOW, y, incr, false, " Secure Boot: %s",
 			lk2nd_secure_boot_status());
