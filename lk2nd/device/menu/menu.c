@@ -236,7 +236,11 @@ void display_fastboot_menu(void)
 #endif
 
 	fbcon_printf_ln(armv8 ? GREEN : YELLOW, y, incr, false, " ARM64:  %s",
-			armv8 ? "available" : "unavailable");
+			armv8 ? "Available" : "Unavailable");
+
+	fbcon_printf_ln(GREEN, y, incr, false, " EL2:    %s", "Available");
+	fbcon_printf_ln(YELLOW, y, incr, false, " PSCI:   %s", "Unavailable");
+	fbcon_printf_ln(YELLOW, y, incr, false, " Secure Boot: %s", "Unknown");
 
 	/*
 	 * Loop to render the menu elements
