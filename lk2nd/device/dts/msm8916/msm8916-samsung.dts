@@ -6,7 +6,8 @@
 #define I2C_GPIO_FLAGS	(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN | GPIO_BIAS_DISABLE)
 
 / {
-	qcom,msm-id = <QCOM_ID_MSM8916 0>;
+	qcom,msm-id = <QCOM_ID_MSM8916 0>,
+			<QCOM_ID_APQ8016 0>;
 	qcom,board-id = <0xCE08FF01 0>,
 			<0xCE08FF01 1>,
 			<0xCE08FF01 2>,
@@ -17,11 +18,30 @@
 			<0xCE08FF01 7>,
 			<0xCE08FF01 8>,
 			<0xCE08FF01 9>,
-			<0xCE08FF01 11>;
+			<0xCE08FF01 11>,
+			<0xF708FF01 7>;
 };
 
 &lk2nd {
 	/* rev 0 */
+
+	gt5note10wifi {
+		model = "Samsung Galaxy Tab A 9.7 WiFi/S Pen (SM-P550 debug)";
+		compatible = "samsung,gt5note10wifi", "samsung,gt510wifi", "qcom,apq8016";
+		lk2nd,match-bootloader = "P550*";
+		lk2nd,dtb-files = "msm8916-samsung-gt510";
+		qcom,msm-id = <QCOM_ID_APQ8016 0>;
+		qcom,board-id = <0xF708FF01 7>;
+
+		gpio-keys {
+			compatible = "gpio-keys";
+
+			home {
+				lk2nd,code = <KEY_HOME>;
+				gpios = <&tlmm 109 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			};
+		};
+	};
 
 	gt58lte-aus {
 		model = "Samsung Galaxy Tab A 8.0 2015 (SM-T355Y)";
@@ -1092,24 +1112,6 @@
 			i2c-reg = <0x25>;
 			i2c-sda-gpios = <&tlmm 2 I2C_GPIO_FLAGS>;
 			i2c-scl-gpios = <&tlmm 3 I2C_GPIO_FLAGS>;
-		};
-	};
-
-	gt510wifi {
-		model = "Samsung Galaxy Tab A 9.7 WiFi (SM-T550/SM-P550 debug)";
-		compatible = "samsung,gt510wifi", "qcom,apq8016";
-		lk2nd,match-bootloader = "P550*", "T550*";
-		lk2nd,dtb-files = "msm8916-samsung-gt510";
-		qcom,msm-id = <QCOM_ID_APQ8016 0>;
-		qcom,board-id = <0xF708FF01 7>;
-
-		gpio-keys {
-			compatible = "gpio-keys";
-
-			home {
-				lk2nd,code = <KEY_HOME>;
-				gpios = <&tlmm 109 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-			};
 		};
 	};
 };
